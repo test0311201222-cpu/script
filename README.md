@@ -152,6 +152,79 @@ ToggleBtn.MouseButton1Click:Connect(function()
 	TweenService:Create(ToggleBtn, TweenInfo.new(0.2), goal):Play()
 end)
 
+--// FLY TOGGLE
+local FlyFrame = Instance.new("Frame", Content)
+FlyFrame.Size = UDim2.new(1, 0, 0, 56)
+FlyFrame.Position = UDim2.new(0, 0, 0, 62)
+FlyFrame.BackgroundColor3 = Color3.fromRGB(16, 14, 20)
+FlyFrame.BorderSizePixel = 0
+Instance.new("UICorner", FlyFrame).CornerRadius = UDim.new(0, 12)
+
+local FlyName = Instance.new("TextLabel", FlyFrame)
+FlyName.Size = UDim2.new(0.7, 0, 1, 0)
+FlyName.Position = UDim2.new(0.05, 0, 0, 0)
+FlyName.BackgroundTransparency = 1
+FlyName.Text = "FLY"
+FlyName.Font = Enum.Font.Gotham
+FlyName.TextColor3 = Color3.fromRGB(230,230,230)
+FlyName.TextSize = 17
+
+local FlyBtn = Instance.new("TextButton", FlyFrame)
+FlyBtn.Size = UDim2.fromOffset(50, 26)
+FlyBtn.Position = UDim2.new(0.8, 0, 0.5, -13)
+FlyBtn.BackgroundColor3 = Color3.fromRGB(62, 45, 80)
+FlyBtn.Text = ""
+FlyBtn.BorderSizePixel = 0
+Instance.new("UICorner", FlyBtn).CornerRadius = UDim.new(0, 20)
+
+local flyEnabled = false
+local flyConnection = nil
+local bodyGyro, bodyVelocity
+
+local function startFly()
+	local char = Player.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = char.HumanoidRootPart
+	bodyGyro = Instance.new("BodyGyro", hrp)
+	bodyGyro.P = 9e4
+	bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+	bodyGyro.CFrame = hrp.CFrame
+	bodyVelocity = Instance.new("BodyVelocity", hrp)
+	bodyVelocity.Velocity = Vector3.new(0,0,0)
+	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+	flyConnection = UIS.InputBegan:Connect(function(input, gp)
+		if gp then return end
+		if input.KeyCode == Enum.KeyCode.Space then
+			bodyVelocity.Velocity = Vector3.new(bodyVelocity.Velocity.X, 50, bodyVelocity.Velocity.Z)
+		elseif input.KeyCode == Enum.KeyCode.W then
+			bodyVelocity.Velocity = hrp.CFrame.LookVector * 50
+		elseif input.KeyCode == Enum.KeyCode.S then
+			bodyVelocity.Velocity = -hrp.CFrame.LookVector * 50
+		elseif input.KeyCode == Enum.KeyCode.A then
+			bodyVelocity.Velocity = -hrp.CFrame.RightVector * 50
+		elseif input.KeyCode == Enum.KeyCode.D then
+			bodyVelocity.Velocity = hrp.CFrame.RightVector * 50
+		end
+	end)
+end
+
+local function stopFly()
+	if bodyGyro then bodyGyro:Destroy() end
+	if bodyVelocity then bodyVelocity:Destroy() end
+	if flyConnection then flyConnection:Disconnect() end
+end
+
+FlyBtn.MouseButton1Click:Connect(function()
+	flyEnabled = not flyEnabled
+	local goal = {BackgroundColor3 = flyEnabled and Color3.fromRGB(170,100,255) or Color3.fromRGB(62,45,80)}
+	TweenService:Create(FlyBtn, TweenInfo.new(0.2), goal):Play()
+	if flyEnabled then
+		startFly()
+	else
+		stopFly()
+	end
+end)
+
 --// MINIMIZED UI
 local MiniFrame = Instance.new("TextButton", ScreenGui)
 MiniFrame.Size = UDim2.fromOffset(140, 44)
