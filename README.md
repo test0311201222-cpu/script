@@ -1,312 +1,122 @@
---// SERVICES
-local TweenService = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
-local Player = game.Players.LocalPlayer
-local GuiParent = Player:WaitForChild("PlayerGui")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
---// MAIN UI
-local ScreenGui = Instance.new("ScreenGui", GuiParent)
-ScreenGui.ResetOnSpawn = false
+local Window = Rayfield:CreateWindow({
+   Name = "SanScrips",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Rayfield Interface Suite",
+   LoadingSubtitle = "by SanScrips",
+   ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
---// MAIN HUB FRAME
-local Hub = Instance.new("Frame", ScreenGui)
-Hub.Size = UDim2.fromOffset(520, 320)
-Hub.Position = UDim2.new(0.28, 0, 0.2, 0)
-Hub.BackgroundColor3 = Color3.fromRGB(8, 7, 12)
-Hub.BackgroundTransparency = 0
-Hub.BorderSizePixel = 0
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
 
-Instance.new("UICorner", Hub).CornerRadius = UDim.new(0, 14)
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
 
-local HubStroke = Instance.new("UIStroke", Hub)
-HubStroke.Thickness = 2
-HubStroke.Color = Color3.fromRGB(135, 50, 200)
-HubStroke.Transparency = 0.12
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "SanScrips Hub" -- The name of the file where your hub's configuration will be saved
+   },
 
---// DRAG SYSTEM
-local dragging = false
-local dragStart, startPos
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
 
-Hub.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = Hub.Position
-	end
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"2025"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+
+local Tab = Window:CreateTab("Main", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Main")
+
+local Toggle = Tab:CreateToggle({
+   Name = "AIMBOT",
+   CurrentValue = false,
+   Flag = "getgenv().AIMBOT = false", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+    -- Auto-Aim Assist (Game Mechanic)
+-- Ativa somente quando segurar o botão direito do mouse
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Configurações
+local AIM_STRENGTH = 0.5-- intensidade da mira automática
+local MAX_DISTANCE = 200 -- distância máxima
+local FOV_RADIUS = 2000 -- área do centro da tela para auto-aim
+
+local aiming = false -- se o jogador está segurando o botão direito
+
+-- Detectar quando segura solta o botão direito
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aiming = true
+    end
 end)
 
-Hub.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aiming = false
+    end
 end)
 
-UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		Hub.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
+-- Função para pegar o jogador mais perto do centro da tela
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local closestDist = math.huge
 
---// HEADER
-local Header = Instance.new("TextLabel", Hub)
-Header.Size = UDim2.new(1, 0, 0, 40)
-Header.BackgroundColor3 = Color3.fromRGB(10, 9, 14)
-Header.Text = "My Hub"
-Header.Font = Enum.Font.GothamSemibold
-Header.TextSize = 18
-Header.TextColor3 = Color3.fromRGB(235,235,235)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
 
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 14)
+            if onScreen and (head.Position - Camera.CFrame.Position).Magnitude <= MAX_DISTANCE then
+                local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
 
-local HeaderStroke = Instance.new("UIStroke", Header)
-HeaderStroke.Color = Color3.fromRGB(70, 30, 120)
-HeaderStroke.Transparency = 0.15
+                if dist < closestDist and dist < FOV_RADIUS then
+                    closestDist = dist
+                    closestPlayer = player
+                end
+            end
+        end
+    end
 
---// LEFT SIDEBAR
-local SideBar = Instance.new("Frame", Hub)
-SideBar.Size = UDim2.new(0, 120, 1, -20)
-SideBar.Position = UDim2.new(0, 10, 0, 10)
-SideBar.BackgroundColor3 = Color3.fromRGB(14, 13, 18)
-SideBar.BorderSizePixel = 0
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
-local SideLayout = Instance.new("UIListLayout", SideBar)
-SideLayout.Padding = UDim.new(0, 6)
-SideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-SideLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function createSideButton(txt)
-	local b = Instance.new("TextButton", SideBar)
-	b.Size = UDim2.new(1, -16, 0, 34)
-	b.Position = UDim2.new(0, 8, 0, 0)
-	b.BackgroundColor3 = Color3.fromRGB(16,16,20)
-	b.Text = txt
-	b.Font = Enum.Font.Gotham
-	b.TextSize = 14
-	b.TextColor3 = Color3.fromRGB(210,210,210)
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	return b
+    return closestPlayer
 end
 
-createSideButton("Main")
-createSideButton("Auto Farm")
-createSideButton("Teleports & ESP")
-createSideButton("Item TP/ESP")
-createSideButton("Game TP/ESP")
-createSideButton("Mob TP")
+-- Loop para ajustar a mira
+RunService.RenderStepped:Connect(function()
+    if aiming then
+        local target = GetClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local head = target.Character.Head
+            local camCF = Camera.CFrame
+            local direction = (head.Position - camCF.Position).Unit
 
---// BUTTONS ON TOP-RIGHT
-local function createTopButton(txt, xOffset)
-	local Btn = Instance.new("TextButton", Header)
-	Btn.Size = UDim2.fromOffset(35, 35)
-	Btn.Position = UDim2.new(1, xOffset, 0, 0)
-	Btn.BackgroundTransparency = 1
-	Btn.Text = txt
-	Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-	Btn.TextSize = 18
-	Btn.Font = Enum.Font.GothamBold
-	return Btn
-end
-
-local MinBtn = createTopButton("-", -105)
-local MaxBtn = createTopButton("+", -70)
-local CloseBtn = createTopButton("×", -35)
-
---// CONTENT
-local Content = Instance.new("Frame", Hub)
-Content.Size = UDim2.new(1, -150, 1, -60)
-Content.Position = UDim2.new(0, 130, 0, 50)
-Content.BackgroundTransparency = 1
-
---// ESP TOGGLE
-local ToggleFrame = Instance.new("Frame", Content)
-ToggleFrame.Size = UDim2.new(1, 0, 0, 56)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(16, 14, 20)
-ToggleFrame.BorderSizePixel = 0
-
-Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 12)
-
-local ToggleName = Instance.new("TextLabel", ToggleFrame)
-ToggleName.Size = UDim2.new(0.7, 0, 1, 0)
-ToggleName.Position = UDim2.new(0.05, 0, 0, 0)
-ToggleName.BackgroundTransparency = 1
-ToggleName.Text = "ESP"
-ToggleName.Font = Enum.Font.Gotham
-ToggleName.TextColor3 = Color3.fromRGB(230,230,230)
-ToggleName.TextSize = 17
-
-local ToggleBtn = Instance.new("TextButton", ToggleFrame)
-ToggleBtn.Size = UDim2.fromOffset(50, 26)
-ToggleBtn.Position = UDim2.new(0.8, 0, 0.5, -13)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(62, 45, 80)
-ToggleBtn.Text = ""
-ToggleBtn.BorderSizePixel = 0
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 20)
-
-local espEnabled = false
-
-ToggleBtn.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-	local goal = {BackgroundColor3 = espEnabled and Color3.fromRGB(170,100,255) or Color3.fromRGB(62,45,80)}
-	TweenService:Create(ToggleBtn, TweenInfo.new(0.2), goal):Play()
+            Camera.CFrame = camCF:Lerp(
+                CFrame.lookAt(camCF.Position, camCF.Position + direction),
+                AIM_STRENGTH
+            )
+        end
+    end
 end)
 
---// FLY TOGGLE
-local FlyFrame = Instance.new("Frame", Content)
-FlyFrame.Size = UDim2.new(1, 0, 0, 56)
-FlyFrame.Position = UDim2.new(0, 0, 0, 62)
-FlyFrame.BackgroundColor3 = Color3.fromRGB(16, 14, 20)
-FlyFrame.BorderSizePixel = 0
-Instance.new("UICorner", FlyFrame).CornerRadius = UDim.new(0, 12)
-
-local FlyName = Instance.new("TextLabel", FlyFrame)
-FlyName.Size = UDim2.new(0.7, 0, 1, 0)
-FlyName.Position = UDim2.new(0.05, 0, 0, 0)
-FlyName.BackgroundTransparency = 1
-FlyName.Text = "FLY"
-FlyName.Font = Enum.Font.Gotham
-FlyName.TextColor3 = Color3.fromRGB(230,230,230)
-FlyName.TextSize = 17
-
-local FlyBtn = Instance.new("TextButton", FlyFrame)
-FlyBtn.Size = UDim2.fromOffset(50, 26)
-FlyBtn.Position = UDim2.new(0.8, 0, 0.5, -13)
-FlyBtn.BackgroundColor3 = Color3.fromRGB(62, 45, 80)
-FlyBtn.Text = ""
-FlyBtn.BorderSizePixel = 0
-Instance.new("UICorner", FlyBtn).CornerRadius = UDim.new(0, 20)
-
-local flyEnabled = false
-local flyConnection = nil
-local bodyGyro, bodyVelocity
-
-local function startFly()
-	local char = Player.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	local hrp = char.HumanoidRootPart
-	bodyGyro = Instance.new("BodyGyro", hrp)
-	bodyGyro.P = 9e4
-	bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-	bodyGyro.CFrame = hrp.CFrame
-	bodyVelocity = Instance.new("BodyVelocity", hrp)
-	bodyVelocity.Velocity = Vector3.new(0,0,0)
-	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-	flyConnection = UIS.InputBegan:Connect(function(input, gp)
-		if gp then return end
-		if input.KeyCode == Enum.KeyCode.Space then
-			bodyVelocity.Velocity = Vector3.new(bodyVelocity.Velocity.X, 50, bodyVelocity.Velocity.Z)
-		elseif input.KeyCode == Enum.KeyCode.W then
-			bodyVelocity.Velocity = hrp.CFrame.LookVector * 50
-		elseif input.KeyCode == Enum.KeyCode.S then
-			bodyVelocity.Velocity = -hrp.CFrame.LookVector * 50
-		elseif input.KeyCode == Enum.KeyCode.A then
-			bodyVelocity.Velocity = -hrp.CFrame.RightVector * 50
-		elseif input.KeyCode == Enum.KeyCode.D then
-			bodyVelocity.Velocity = hrp.CFrame.RightVector * 50
-		end
-	end)
-end
-
-local function stopFly()
-	if bodyGyro then bodyGyro:Destroy() end
-	if bodyVelocity then bodyVelocity:Destroy() end
-	if flyConnection then flyConnection:Disconnect() end
-end
-
-FlyBtn.MouseButton1Click:Connect(function()
-	flyEnabled = not flyEnabled
-	local goal = {BackgroundColor3 = flyEnabled and Color3.fromRGB(170,100,255) or Color3.fromRGB(62,45,80)}
-	TweenService:Create(FlyBtn, TweenInfo.new(0.2), goal):Play()
-	if flyEnabled then
-		startFly()
-	else
-		stopFly()
-	end
-end)
-
---// MINIMIZED UI
-local MiniFrame = Instance.new("TextButton", ScreenGui)
-MiniFrame.Size = UDim2.fromOffset(140, 44)
-MiniFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
-MiniFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 15)
-MiniFrame.Text = "My Hub"
-MiniFrame.TextColor3 = Color3.fromRGB(230,230,230)
-MiniFrame.BackgroundTransparency = 0.06
-MiniFrame.Font = Enum.Font.GothamBold
-MiniFrame.TextSize = 16
-MiniFrame.Visible = false
-
-Instance.new("UICorner", MiniFrame).CornerRadius = UDim.new(0, 12)
-
---// MINIMIZE BUTTON ACTION
-MinBtn.MouseButton1Click:Connect(function()
-	Hub.Visible = false
-	MiniFrame.Visible = true
-end)
-
-MiniFrame.MouseButton1Click:Connect(function()
-	MiniFrame.Visible = false
-	Hub.Visible = true
-end)
-
---// MAXIMIZE BUTTON (ANIMATION)
-local maximized = false
-MaxBtn.MouseButton1Click:Connect(function()
-	maximized = not maximized
-	local goal = {}
-
-	if maximized then
-		goal = {Size = UDim2.fromOffset(550, 350)}
-	else
-		goal = {Size = UDim2.fromOffset(420, 280)}
-	end
-
-	TweenService:Create(Hub, TweenInfo.new(0.25, Enum.EasingStyle.Sine), goal):Play()
-end)
-
---// CLOSE WITH CONFIRMATION
-local ConfirmFrame = Instance.new("Frame", ScreenGui)
-ConfirmFrame.Size = UDim2.fromOffset(320, 150)
-ConfirmFrame.Position = UDim2.new(0.36, 0, 0.34, 0)
-ConfirmFrame.BackgroundColor3 = Color3.fromRGB(12,10,15)
-ConfirmFrame.Visible = false
-
-Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 14)
-
-local ConfirmText = Instance.new("TextLabel", ConfirmFrame)
-ConfirmText.Size = UDim2.new(1,0,0,60)
-ConfirmText.Position = UDim2.new(0,0,0,8)
-ConfirmText.BackgroundTransparency = 1
-ConfirmText.Text = "Deseja fechar o hub?"
-ConfirmText.Font = Enum.Font.Gotham
-ConfirmText.TextSize = 18
-ConfirmText.TextColor3 = Color3.fromRGB(230,230,230)
-
-local Yes = Instance.new("TextButton", ConfirmFrame)
-Yes.Size = UDim2.fromOffset(120, 44)
-Yes.Position = UDim2.new(0.08,0,0.62,0)
-Yes.BackgroundColor3 = Color3.fromRGB(85,40,180)
-Yes.Text = "Sim"
-Yes.TextColor3 = Color3.fromRGB(245,245,245)
-Instance.new("UICorner", Yes).CornerRadius = UDim.new(0,10)
-
-local No = Instance.new("TextButton", ConfirmFrame)
-No.Size = UDim2.fromOffset(120, 44)
-No.Position = UDim2.new(0.52,0,0.62,0)
-No.BackgroundColor3 = Color3.fromRGB(60,60,70)
-No.Text = "Não"
-No.TextColor3 = Color3.fromRGB(245,245,245)
-Instance.new("UICorner", No).CornerRadius = UDim.new(0,10)
-
-CloseBtn.MouseButton1Click:Connect(function()
-	ConfirmFrame.Visible = true
-end)
-
-Yes.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
-
-No.MouseButton1Click:Connect(function()
-	ConfirmFrame.Visible = false
-end)
+   end,
+})
